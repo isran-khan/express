@@ -1,44 +1,45 @@
 import { pool } from "../../db";
 import { IUser } from "./user.interface";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 
 const creatUsersIntoDB = async (payload: IUser) => {
   const { name, email, password, age } = payload;
-  const hashPassword = await bcrypt.hash(password,10)
+  const hashPassword = await bcrypt.hash(password, 10);
+  const role = payload.role?.trim() || "user";
   // console.log(hash)
   // console.log(password)
   const result = await pool.query(
     `
-       INSERT INTO users (name, email, password, age) VALUES($1,$2,$3,$4) RETURNING *
+       INSERT INTO users (name, email, password, age, role) VALUES($1,$2,$3,$4,COALESCE($5,'user')) RETURNING id, name, email, age, role, is_active, created_at, updated_at
     `,
-    [name, email, hashPassword, age],
+    [name, email, hashPassword, age ?? null, role],
   );
-  delete result.rows[0].password
+  delete result.rows[0].password;
   return result;
 };
 
-const getAllUsersFromDB = async()=>{
-     const result = await pool.query(`
+const getAllUsersFromDB = async () => {
+  const result = await pool.query(`
         SELECT * FROM users
       `);
-      return result
-}
+  return result;
+};
 
-const getSingleUserFromDB = async(id: string)=>{
-    //  const { id } = payload;
-    const result = await pool.query(
-      `
+const getSingleUserFromDB = async (id: string) => {
+  //  const { id } = payload;
+  const result = await pool.query(
+    `
         SELECT * FROM users WHERE id=$1
       `,
-      [id],
-    );
-    return result
-}
+    [id],
+  );
+  return result;
+};
 
-const updateUserFromDB =async(payload: IUser, id: string)=>{
-    const { name, age, password, is_active } = payload;
-    const result = await pool.query(
-      `
+const updateUserFromDB = async (payload: IUser, id: string) => {
+  const { name, age, password, is_active } = payload;
+  const result = await pool.query(
+    `
       UPDATE users
       SET
         name = COALESCE($1, name),
@@ -49,24 +50,25 @@ const updateUserFromDB =async(payload: IUser, id: string)=>{
       WHERE id = $5
       RETURNING id, name, email, age, is_active, created_at, updated_at
       `,
-      [name ?? null, password ?? null, age ?? null, is_active ?? null, id],
-    );
-    return result
-}
+    [name ?? null, password ?? null, age ?? null, is_active ?? null, id],
+  );
+  return result;
+};
 
-const deleteUserFromDB = async(id: string)=>{
-    const result = await pool.query(`
+const deleteUserFromDB = async (id: string) => {
+  const result = await pool.query(
+    `
            DELETE FROM users WHERE id=$1
        `,
-          [id]
-      ) 
-      return result
-}
+    [id],
+  );
+  return result;
+};
 
 export const userservice = {
   creatUsersIntoDB,
   getAllUsersFromDB,
   getSingleUserFromDB,
   updateUserFromDB,
-   deleteUserFromDB,
+  deleteUserFromDB,
 };

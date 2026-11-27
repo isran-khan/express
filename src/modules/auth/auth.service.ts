@@ -1,7 +1,7 @@
 import config from "../../config";
 import { pool } from "../../db";
 import { ILogin } from "./auth.interface";
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
 
 import jwt from "jsonwebtoken";
 
@@ -19,12 +19,12 @@ const loginUserIntoBD = async (payload: ILogin) => {
     [email],
   );
   //   console.log(user)
-  if (user.rows.length === 0) {
+  if (user.rowCount === 0) {
     throw new Error("Invalid credentials!!");
   }
-  const matchPassword = await bcrypt.compare(password, user.rows[0].password) 
-  if(!matchPassword){
-    throw new Error('Invalid credentials!!')
+  const matchPassword = await bcrypt.compare(password, user.rows[0].password);
+  if (!matchPassword) {
+    throw new Error("Invalid credentials!!");
   }
   if (!user.rows[0].is_active) {
     throw new Error("Access Denied!!");
@@ -32,25 +32,18 @@ const loginUserIntoBD = async (payload: ILogin) => {
 
   const dbUser = user.rows[0];
 
-const jwtPayload = {
-  id: dbUser.id,
-  name: dbUser.name,
-  email: dbUser.email,
-};
-const accessToken = jwt.sign(jwtPayload, config.jwt_secret, { expiresIn: "1d" });
+  const jwtPayload = {
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    role: dbUser.role,
+  };
+  const accessToken = jwt.sign(jwtPayload, config.jwt_secret, {
+    expiresIn: "1d",
+  });
 
   return accessToken;
-//   const accessToken = jwt.sign(
-//   { id: user.rows[0].id, email: user.rows[0].email },
-//   process.env.JWT_SECRET as string,
-//   { expiresIn: "1d" }
-// );
-
-// const { password: _pw, ...safeUser } = user.rows[0];
-// return { accessToken, user: safeUser };
 };
-
-
 
 export const authService = {
   loginUserIntoBD,
